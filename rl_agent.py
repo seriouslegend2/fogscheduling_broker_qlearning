@@ -45,6 +45,6 @@ class QLearningAgent:
         # Add epsilon to avoid division by zero
         epsilon = 1e-10
         reward = 0.36 * (workload_distribution / (next_workload_distribution + epsilon)) + \
-                 0.27 * (delay / (env.broker.processing_time + epsilon)) + \
+                 0.27 * (delay / (task['deadline'] + epsilon)) + \
                  0.29 * (reliability / (next_reliability + epsilon))
         return reward

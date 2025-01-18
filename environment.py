@@ -31,6 +31,21 @@ class FogNode:
     def get_total_workload(self):
         return sum(t['length'] for t in self.primary_queue) + sum(t['length'] for t in self.backup_queue)
 
+    def execute_tasks(self):
+        # Execute tasks based on EDF scheduling
+        if self.backup_queue:
+            self.backup_queue.sort(key=lambda x: x['deadline'])
+            for task in self.backup_queue:
+                self.process_task(task)
+        else:
+            self.primary_queue.sort(key=lambda x: x['deadline'])
+            for task in self.primary_queue:
+                self.process_task(task)
+
+    def process_task(self, task):
+        # Simulate task processing
+        pass
+
 class Broker:
     def __init__(self, processing_time, bandwidth, channel_gain, transmission_power, noise, link_failure_rate):
         self.processing_time = processing_time
@@ -40,7 +55,7 @@ class Broker:
         self.noise = noise
         self.link_failure_rate = link_failure_rate
 
-    def calculate_transmission_delay(self, task_size):
+    def calculate_transmission_delay(self, task_size, distance):
         TRB_fj = self.bandwidth * math.log2(1 + self.channel_gain * self.transmission_power / self.noise)
         T_ufj = task_size / TRB_fj
         return self.processing_time + T_ufj
@@ -87,9 +102,16 @@ class Environment:
                 primary_node = self.fog_nodes[task['primary']]
                 backup_node = self.fog_nodes[task['backup']]
                 Rc_fi = math.exp(-primary_node.failure_rate * task['length'] / primary_node.frequency)
-                Rl_fi = math.exp(-self.broker.link_failure_rate * task['size'] / self.broker.bandwidth)
+                TRB_fj = self.broker.bandwidth * math.log2(1 + self.broker.channel_gain * self.broker.transmission_power / self.broker.noise)
+                Rl_fi = math.exp(-self.broker.link_failure_rate * task['size'] / TRB_fj)
                 R0_i = Rc_fi * Rl_fi
                 task_reliability = 2 * R0_i - R0_i ** 2
+
+                # Check if the task meets its deadline
+                delay = self.calculate_delay(task, primary_node, backup_node)
+                if delay > task['deadline']:
+                    task_reliability = 0  # Task fails if it misses the deadline
+
                 total_reliability *= task_reliability
         return total_reliability
 
@@ -100,7 +122,11 @@ class Environment:
         return workload_distribution
 
     def calculate_delay(self, task, primary_node, backup_node):
-        T_ufj = self.broker.calculate_transmission_delay(task['size'])
+        T_ufj = self.broker.calculate_transmission_delay(task['size'], 1)  # Assuming distance is 1 for simplicity
         T_efj = task['length'] / primary_node.frequency
         T_Qfj = primary_node.get_total_workload() / primary_node.frequency
         return T_ufj + T_efj + T_Qfj
+
+    def execute_all_tasks(self):
+        for node in self.fog_nodes:
+            node.execute_tasks()
