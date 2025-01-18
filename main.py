@@ -14,7 +14,7 @@ transmission_params = {
 
 env = Environment(
     num_fog_nodes=10,
-    node_capacity=100,
+    node_capacity=10,
     node_frequency=2.5e9,
     node_failure_rate=0.01,
     transmission_params=transmission_params
@@ -28,7 +28,7 @@ task_length_range = (100, 1000)
 task_deadline_range = (100, 5000)
 task_frequency_range = (1e9, 5e9)
 
-for i in range(100):
+for i in range(10):
     task = {
         'id': i,
         'load': random.randint(task_size_range[0], task_size_range[1]),
@@ -57,7 +57,7 @@ while len(env.tasks) > 0:
 print("Training completed.")
 
 # Display the final allocation of tasks to fog nodes
-for i, node in enumerate(env.fog_nodes):
-    print(f"Fog Node {i}:")
-    print(f"  Primary Queue: {[task['id'] for task in node.primary_queue]}")
-    print(f"  Backup Queue: {[task['id'] for task in node.backup_queue]}")
+# for i, node in enumerate(env.fog_nodes):
+#     print(f"Fog Node {i}:")
+#     print(f"  Primary Queue: {[task['id'] for task in node.primary_queue]}")
+#     print(f"  Backup Queue: {[task['id'] for task in node.backup_queue]}")
