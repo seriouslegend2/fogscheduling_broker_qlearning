@@ -39,6 +39,57 @@ def log_state_action_reward(state, action, reward, q_table, log_file):
     log_file.write(f"Reward: {reward}\n")
     log_file.write(f"Q-Table: {q_table}\n\n")
 
+def run_simulation(env, agent, num_tasks, log_file):
+    # Generate random tasks
+    for i in range(num_tasks):
+        task = {
+            'id': i,
+            'load': random.randint(task_size_range[0], task_size_range[1]),
+            'size': random.randint(task_length_range[0], task_length_range[1]),
+            'length': random.uniform(task_frequency_range[0], task_frequency_range[1]),
+            'deadline': random.randint(task_deadline_range[0], task_deadline_range[1])
+        }
+        env.add_task(task)
+
+    # Run simulation
+    while len(env.tasks) > 0:
+        for task in env.tasks:
+            # Calculate reliability and workload distribution for each fog node
+            state = env.get_state()
+
+            # Choose an action based on the current state
+            action = agent.choose_action(state)
+
+            # Assign the primary task to the selected node
+            task, reward = env.step(action)
+
+            # Check if the task result is received before the deadline
+            task_remaining_deadline = task['deadline'] - env.broker.processing_time
+            while task_remaining_deadline > env.broker.calculate_transmission_delay(task['size'], 1) + env.broker.processing_time:
+                if task in env.fog_nodes[action['primary']].primary_queue:
+                    env.fog_nodes[action['primary']].release_task(task)
+                    break
+                task_remaining_deadline -= 1
+
+            # If the task result is not received, send the backup task
+            if task in env.fog_nodes[action['primary']].primary_queue:
+                env.fog_nodes[action['primary']].release_task(task)
+                env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
+
+            # Calculate the reward and update the Q-values
+            next_state = env.get_state()
+            reward = agent.calculate_reward(state, action, next_state, env, task)
+            agent.learn(state, action, reward, next_state)
+
+            # Log state, action, reward, and Q-values
+            log_state_action_reward(state, action, reward, agent.q_table, log_file)
+
+    # Execute all tasks in the fog nodes
+    env.execute_all_tasks()
+
+    # Record the total reliability
+    return env.calculate_total_reliability()
+
 # Open a log file to write the output
 with open('simulation_log.txt', 'w') as log_file:
 
@@ -53,56 +104,7 @@ with open('simulation_log.txt', 'w') as log_file:
         )
 
         agent = QLearningAgent(num_actions=10)
-
-        # Generate random tasks
-        for i in range(num_tasks):
-            task = {
-                'id': i,
-                'load': random.randint(task_size_range[0], task_size_range[1]),
-                'size': random.randint(task_length_range[0], task_length_range[1]),
-                'length': random.uniform(task_frequency_range[0], task_frequency_range[1]),
-                'deadline': random.randint(task_deadline_range[0], task_deadline_range[1])
-            }
-            env.add_task(task)
-
-        # Run simulation
-        while len(env.tasks) > 0:
-            for task in env.tasks:
-                # Calculate reliability and workload distribution
-                state = env.get_state()
-
-                # Choose an action based on the current state
-                action = agent.choose_action(state)
-
-                # Assign the primary task to the selected node
-                task, reward = env.step(action)
-
-                # Check if the task result is received before the deadline
-                task_remaining_deadline = task['deadline'] - env.broker.processing_time
-                while task_remaining_deadline > env.broker.calculate_transmission_delay(task['size'], 1) + env.broker.processing_time:
-                    if task in env.fog_nodes[action['primary']].primary_queue:
-                        env.fog_nodes[action['primary']].release_task(task)
-                        break
-                    task_remaining_deadline -= 1
-
-                # If the task result is not received, send the backup task
-                if task in env.fog_nodes[action['primary']].primary_queue:
-                    env.fog_nodes[action['primary']].release_task(task)
-                    env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
-
-                # Calculate the reward and update the Q-values
-                next_state = env.get_state()
-                reward = agent.calculate_reward(state, action, next_state, env, task)
-                agent.learn(state, action, reward, next_state)
-
-                # Log state, action, reward, and Q-values
-                log_state_action_reward(state, action, reward, agent.q_table, log_file)
-
-        # Execute all tasks in the fog nodes
-        env.execute_all_tasks()
-
-        # Record the total reliability
-        total_reliability = env.calculate_total_reliability()
+        total_reliability = run_simulation(env, agent, num_tasks, log_file)
         total_reliability_list_tasks.append(total_reliability)
 
     # Run simulations for varying number of fog nodes
@@ -116,57 +118,7 @@ with open('simulation_log.txt', 'w') as log_file:
         )
 
         agent = QLearningAgent(num_actions=num_fog_nodes)
-
-        # Generate random tasks (fixed number of tasks, e.g., 200)
-        num_tasks = 200
-        for i in range(num_tasks):
-            task = {
-                'id': i,
-                'load': random.randint(task_size_range[0], task_size_range[1]),
-                'size': random.randint(task_length_range[0], task_length_range[1]),
-                'length': random.uniform(task_frequency_range[0], task_frequency_range[1]),
-                'deadline': random.randint(task_deadline_range[0], task_deadline_range[1])
-            }
-            env.add_task(task)
-
-        # Run simulation
-        while len(env.tasks) > 0:
-            for task in env.tasks:
-                # Calculate reliability and workload distribution
-                state = env.get_state()
-
-                # Choose an action based on the current state
-                action = agent.choose_action(state)
-
-                # Assign the primary task to the selected node
-                task, reward = env.step(action)
-
-                # Check if the task result is received before the deadline
-                task_remaining_deadline = task['deadline'] - env.broker.processing_time
-                while task_remaining_deadline > env.broker.calculate_transmission_delay(task['size'], 1) + env.broker.processing_time:
-                    if task in env.fog_nodes[action['primary']].primary_queue:
-                        env.fog_nodes[action['primary']].release_task(task)
-                        break
-                    task_remaining_deadline -= 1
-
-                # If the task result is not received, send the backup task
-                if task in env.fog_nodes[action['primary']].primary_queue:
-                    env.fog_nodes[action['primary']].release_task(task)
-                    env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
-
-                # Calculate the reward and update the Q-values
-                next_state = env.get_state()
-                reward = agent.calculate_reward(state, action, next_state, env, task)
-                agent.learn(state, action, reward, next_state)
-
-                # Log state, action, reward, and Q-values
-                log_state_action_reward(state, action, reward, agent.q_table, log_file)
-
-        # Execute all tasks in the fog nodes
-        env.execute_all_tasks()
-
-        # Record the total reliability
-        total_reliability = env.calculate_total_reliability()
+        total_reliability = run_simulation(env, agent, 200, log_file)  # Fixed number of tasks
         total_reliability_list_fog_nodes.append(total_reliability)
 
     # Run simulations for varying failure rates
@@ -180,57 +132,7 @@ with open('simulation_log.txt', 'w') as log_file:
         )
 
         agent = QLearningAgent(num_actions=10)
-
-        # Generate random tasks (fixed number of tasks, e.g., 200)
-        num_tasks = 200
-        for i in range(num_tasks):
-            task = {
-                'id': i,
-                'load': random.randint(task_size_range[0], task_size_range[1]),
-                'size': random.randint(task_length_range[0], task_length_range[1]),
-                'length': random.uniform(task_frequency_range[0], task_frequency_range[1]),
-                'deadline': random.randint(task_deadline_range[0], task_deadline_range[1])
-            }
-            env.add_task(task)
-
-        # Run simulation
-        while len(env.tasks) > 0:
-            for task in env.tasks:
-                # Calculate reliability and workload distribution
-                state = env.get_state()
-
-                # Choose an action based on the current state
-                action = agent.choose_action(state)
-
-                # Assign the primary task to the selected node
-                task, reward = env.step(action)
-
-                # Check if the task result is received before the deadline
-                task_remaining_deadline = task['deadline'] - env.broker.processing_time
-                while task_remaining_deadline > env.broker.calculate_transmission_delay(task['size'], 1) + env.broker.processing_time:
-                    if task in env.fog_nodes[action['primary']].primary_queue:
-                        env.fog_nodes[action['primary']].release_task(task)
-                        break
-                    task_remaining_deadline -= 1
-
-                # If the task result is not received, send the backup task
-                if task in env.fog_nodes[action['primary']].primary_queue:
-                    env.fog_nodes[action['primary']].release_task(task)
-                    env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
-
-                # Calculate the reward and update the Q-values
-                next_state = env.get_state()
-                reward = agent.calculate_reward(state, action, next_state, env, task)
-                agent.learn(state, action, reward, next_state)
-
-                # Log state, action, reward, and Q-values
-                log_state_action_reward(state, action, reward, agent.q_table, log_file)
-
-        # Execute all tasks in the fog nodes
-        env.execute_all_tasks()
-
-        # Record the total reliability
-        total_reliability = env.calculate_total_reliability()
+        total_reliability = run_simulation(env, agent, 200, log_file)  # Fixed number of tasks
         total_reliability_list_failure_rate.append(total_reliability)
 
 # Plot the results for number of tasks

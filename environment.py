@@ -1,4 +1,3 @@
-import random
 import math
 
 class FogNode:
@@ -31,20 +30,30 @@ class FogNode:
     def get_total_workload(self):
         return sum(t['length'] for t in self.primary_queue) + sum(t['length'] for t in self.backup_queue)
 
-    def execute_tasks(self):
-        # Execute tasks based on EDF scheduling
-        if self.backup_queue:
-            self.backup_queue.sort(key=lambda x: x['deadline'])
-            for task in self.backup_queue:
-                self.process_task(task)
-        else:
-            self.primary_queue.sort(key=lambda x: x['deadline'])
-            for task in self.primary_queue:
-                self.process_task(task)
+    def calculate_reliability(self, broker):
+        total_reliability = 1
+        for task in self.primary_queue:
+            Rc_fi = math.exp(-self.failure_rate * task['length'] / self.frequency)
+            TRB_fj = broker.bandwidth * math.log2(1 + broker.channel_gain * broker.transmission_power / broker.noise)
+            Rl_fi = math.exp(-broker.link_failure_rate * task['size'] / TRB_fj)
+            R0_i = Rc_fi * Rl_fi
+            task_reliability = 2 * R0_i - R0_i ** 2
 
-    def process_task(self, task):
-        # Simulate task processing
-        pass
+            # Check if the task meets its deadline
+            delay = broker.calculate_transmission_delay(task['size'], 1) + task['length'] / self.frequency + self.get_total_workload() / self.frequency
+            if delay > task['deadline']:
+                task_reliability = 0  # Task fails if it misses the deadline
+
+            total_reliability *= task_reliability
+        return total_reliability
+
+    def execute_tasks(self):
+        # Simulate the execution of tasks in the primary queue
+        for task in self.primary_queue:
+            self.release_task(task)
+        # Simulate the execution of tasks in the backup queue
+        for task in self.backup_queue:
+            self.release_task(task)
 
 class Broker:
     def __init__(self, processing_time, bandwidth, channel_gain, transmission_power, noise, link_failure_rate):
@@ -70,9 +79,12 @@ class Environment:
         self.tasks.append(task)
 
     def get_state(self):
-        reliability = self.calculate_total_reliability()
-        workload_distribution = self.calculate_workload_distribution()
-        return (reliability, workload_distribution)
+        state = []
+        for node in self.fog_nodes:
+            reliability = node.calculate_reliability(self.broker)
+            workload_distribution = node.get_total_workload()
+            state.append((reliability, workload_distribution))
+        return state
 
     def step(self, action):
         task = self.tasks.pop(0)
@@ -95,37 +107,18 @@ class Environment:
             node.backup_queue = []
         self.tasks = []
 
-    def calculate_total_reliability(self):
-        total_reliability = 1
-        for node in self.fog_nodes:
-            for task in node.primary_queue:
-                primary_node = self.fog_nodes[task['primary']]
-                backup_node = self.fog_nodes[task['backup']]
-                Rc_fi = math.exp(-primary_node.failure_rate * task['length'] / primary_node.frequency)
-                TRB_fj = self.broker.bandwidth * math.log2(1 + self.broker.channel_gain * self.broker.transmission_power / self.broker.noise)
-                Rl_fi = math.exp(-self.broker.link_failure_rate * task['size'] / TRB_fj)
-                R0_i = Rc_fi * Rl_fi
-                task_reliability = 2 * R0_i - R0_i ** 2
-
-                # Check if the task meets its deadline
-                delay = self.calculate_delay(task, primary_node, backup_node)
-                if delay > task['deadline']:
-                    task_reliability = 0  # Task fails if it misses the deadline
-
-                total_reliability *= task_reliability
-        return total_reliability
-
-    def calculate_workload_distribution(self):
-        total_workload = sum(node.get_total_workload() for node in self.fog_nodes)
-        avg_workload = total_workload / len(self.fog_nodes)
-        workload_distribution = sum(abs(node.get_total_workload() - avg_workload) for node in self.fog_nodes)
-        return workload_distribution
-
     def calculate_delay(self, task, primary_node, backup_node):
         T_ufj = self.broker.calculate_transmission_delay(task['size'], 1)  # Assuming distance is 1 for simplicity
         T_efj = task['length'] / primary_node.frequency
         T_Qfj = primary_node.get_total_workload() / primary_node.frequency
         return T_ufj + T_efj + T_Qfj
+
+    def calculate_total_reliability(self):
+        total_reliability = 1
+        for node in self.fog_nodes:
+            node_reliability = node.calculate_reliability(self.broker)
+            total_reliability *= node_reliability
+        return total_reliability
 
     def execute_all_tasks(self):
         for node in self.fog_nodes:
