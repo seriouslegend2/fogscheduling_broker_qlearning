@@ -33,11 +33,19 @@ total_reliability_list_fog_nodes = []
 failure_rate_list = [0.0001, 0.001, 0.01, 0.1, 0.5]
 total_reliability_list_failure_rate = []
 
-def log_state_action_reward(state, action, reward, q_table, log_file):
+def log_state_action_reward(iteration, state, action, reward, q_table, log_file):
+    primary_node_state = state[action['primary']]
+    backup_node_state = state[action['backup']]
+    num_entries = len(q_table)
+    num_q_values = num_entries * 10 * 10  # Assuming 10 actions for primary and 10 for backup
+    log_file.write(f"Iteration: {iteration}\n")
     log_file.write(f"State: {state}\n")
     log_file.write(f"Action: {action}\n")
     log_file.write(f"Reward: {reward}\n")
-    log_file.write(f"Q-Table: {q_table}\n\n")
+    log_file.write(f"Q-Table Size: {num_entries} entries, {num_q_values} Q-values\n")
+    log_file.write(f"Q-Table: {q_table}\n")
+    log_file.write(f"Current Focus: Primary Node {action['primary']} (Reliability: {primary_node_state[0]}, Workload: {primary_node_state[1]}), "
+                   f"Backup Node {action['backup']} (Reliability: {backup_node_state[0]}, Workload: {backup_node_state[1]})\n\n")
 
 def run_simulation(env, agent, num_tasks, log_file):
     # Generate random tasks
@@ -51,38 +59,42 @@ def run_simulation(env, agent, num_tasks, log_file):
         }
         env.add_task(task)
 
+    iteration = 0  # Initialize iteration counter
+
     # Run simulation
     while len(env.tasks) > 0:
-        for task in env.tasks:
-            # Calculate reliability and workload distribution for each fog node
-            state = env.get_state()
+        task = env.tasks.pop(0)  # Get the next task to process
+        # Calculate reliability and workload distribution for each fog node
+        state = env.get_state()
 
-            # Choose an action based on the current state
-            action = agent.choose_action(state)
+        # Choose an action based on the current state
+        action = agent.choose_action(state)
 
-            # Assign the primary task to the selected node
-            task, reward = env.step(action)
+        # Assign the primary task to the selected node
+        task, reward = env.step(action)
 
-            # Check if the task result is received before the deadline
-            task_remaining_deadline = task['deadline'] - env.broker.processing_time
-            while task_remaining_deadline > env.broker.calculate_transmission_delay(task['size'], 1) + env.broker.processing_time:
-                if task in env.fog_nodes[action['primary']].primary_queue:
-                    env.fog_nodes[action['primary']].release_task(task)
-                    break
-                task_remaining_deadline -= 1
-
-            # If the task result is not received, send the backup task
+        # Check if the task result is received before the deadline
+        task_remaining_deadline = task['deadline'] - env.broker.processing_time
+        while task_remaining_deadline > env.broker.calculate_transmission_delay(task['size'], 1) + env.broker.processing_time:
             if task in env.fog_nodes[action['primary']].primary_queue:
                 env.fog_nodes[action['primary']].release_task(task)
-                env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
+                break
+            task_remaining_deadline -= 1
 
-            # Calculate the reward and update the Q-values
-            next_state = env.get_state()
-            reward = agent.calculate_reward(state, action, next_state, env, task)
-            agent.learn(state, action, reward, next_state)
+        # If the task result is not received, send the backup task
+        if task in env.fog_nodes[action['primary']].primary_queue:
+            env.fog_nodes[action['primary']].release_task(task)
+            env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
 
-            # Log state, action, reward, and Q-values
-            log_state_action_reward(state, action, reward, agent.q_table, log_file)
+        # Calculate the reward and update the Q-values
+        next_state = env.get_state()
+        reward = agent.calculate_reward(state, action, next_state, env, task)
+        agent.learn(state, action, reward, next_state)
+
+        # Log state, action, reward, and Q-values
+        log_state_action_reward(iteration, state, action, reward, agent.q_table, log_file)
+
+        iteration += 1  # Increment iteration counter
 
     # Execute all tasks in the fog nodes
     env.execute_all_tasks()
