@@ -1,7 +1,6 @@
 from environment import Environment
 from rl_agent import QLearningAgent
 import random
-import matplotlib.pyplot as plt
 
 # Initialize transmission parameters
 transmission_params = {
@@ -21,17 +20,8 @@ task_length_range = (100, 1000)
 task_deadline_range = (100, 5000)
 task_frequency_range = (1e9, 5e9)
 
-# List to store the results for number of tasks
-num_tasks_list = range(100, 501, 50)
-total_reliability_list_tasks = []
-
-# List to store the results for number of fog nodes
-num_fog_nodes_list = [5, 10, 15, 20]
-total_reliability_list_fog_nodes = []
-
-# List to store the results for failure rates
-failure_rate_list = [0.0001, 0.001, 0.01, 0.1, 0.5]
-total_reliability_list_failure_rate = []
+# Number of tasks is constant
+num_tasks = 100
 
 def log_state_action_reward(iteration, state, action, reward, q_table, log_file):
     primary_node_state = state[action['primary']]
@@ -60,12 +50,13 @@ def run_simulation(env, agent, num_tasks, log_file):
         env.add_task(task)
 
     iteration = 0  # Initialize iteration counter
+    reliability_list = []  # List to store reliability at each iteration
 
     # Run simulation
     while len(env.tasks) > 0:
         task = env.tasks.pop(0)  # Get the next task to process
         # Calculate reliability and workload distribution for each fog node
-        state = env.get_state()
+        state = env.get_state(log_file)
 
         # Choose an action based on the current state
         action = agent.choose_action(state)
@@ -87,90 +78,38 @@ def run_simulation(env, agent, num_tasks, log_file):
             env.fog_nodes[action['backup']].assign_task(task, is_backup=True)
 
         # Calculate the reward and update the Q-values
-        next_state = env.get_state()
+        next_state = env.get_state(log_file)
         reward = agent.calculate_reward(state, action, next_state, env, task)
         agent.learn(state, action, reward, next_state)
 
         # Log state, action, reward, and Q-values
         log_state_action_reward(iteration, state, action, reward, agent.q_table, log_file)
 
+        # Log the next state after the action
+        log_file.write(f"Next State: {next_state}\n\n")
+
+        # Calculate and log the total reliability at this iteration
+        total_reliability = env.calculate_total_reliability(log_file)
+        reliability_list.append(total_reliability)
+
         iteration += 1  # Increment iteration counter
 
     # Execute all tasks in the fog nodes
     env.execute_all_tasks()
 
-    # Record the total reliability
-    return env.calculate_total_reliability()
+    return reliability_list
 
 # Open a log file to write the output
 with open('simulation_log.txt', 'w') as log_file:
 
-    # Run simulations for varying number of tasks
-    for num_tasks in num_tasks_list:
-        env = Environment(
-            num_fog_nodes=10,
-            node_capacity=node_capacity,
-            node_frequency=node_frequency,
-            node_failure_rate=0.01,
-            transmission_params=transmission_params
-        )
+    # Run simulation with a constant number of tasks
+    env = Environment(
+        num_fog_nodes=10,
+        node_capacity=node_capacity,
+        node_frequency=node_frequency,
+        node_failure_rate=0.01,
+        transmission_params=transmission_params
+    )
 
-        agent = QLearningAgent(num_actions=10)
-        total_reliability = run_simulation(env, agent, num_tasks, log_file)
-        total_reliability_list_tasks.append(total_reliability)
-
-    # Run simulations for varying number of fog nodes
-    for num_fog_nodes in num_fog_nodes_list:
-        env = Environment(
-            num_fog_nodes=num_fog_nodes,
-            node_capacity=node_capacity,
-            node_frequency=node_frequency,
-            node_failure_rate=0.01,
-            transmission_params=transmission_params
-        )
-
-        agent = QLearningAgent(num_actions=num_fog_nodes)
-        total_reliability = run_simulation(env, agent, 200, log_file)  # Fixed number of tasks
-        total_reliability_list_fog_nodes.append(total_reliability)
-
-    # Run simulations for varying failure rates
-    for failure_rate in failure_rate_list:
-        env = Environment(
-            num_fog_nodes=10,
-            node_capacity=node_capacity,
-            node_frequency=node_frequency,
-            node_failure_rate=failure_rate,
-            transmission_params=transmission_params
-        )
-
-        agent = QLearningAgent(num_actions=10)
-        total_reliability = run_simulation(env, agent, 200, log_file)  # Fixed number of tasks
-        total_reliability_list_failure_rate.append(total_reliability)
-
-# Plot the results for number of tasks
-plt.figure(figsize=(18, 6))
-plt.subplot(1, 3, 1)
-plt.plot(num_tasks_list, total_reliability_list_tasks, marker='o')
-plt.xlabel('Number of Tasks')
-plt.ylabel('Total Reliability')
-plt.title('Total Reliability vs. Number of Tasks')
-plt.grid(True)
-
-# Plot the results for number of fog nodes
-plt.subplot(1, 3, 2)
-plt.plot(num_fog_nodes_list, total_reliability_list_fog_nodes, marker='o')
-plt.xlabel('Number of Fog Nodes')
-plt.ylabel('Total Reliability')
-plt.title('Total Reliability vs. Number of Fog Nodes')
-plt.grid(True)
-
-# Plot the results for failure rates
-plt.subplot(1, 3, 3)
-plt.plot(failure_rate_list, total_reliability_list_failure_rate, marker='o')
-plt.xlabel('Failure Rate')
-plt.ylabel('Total Reliability')
-plt.title('Total Reliability vs. Failure Rate')
-plt.grid(True)
-
-plt.tight_layout()
-plt.show()
+    agent = QLearningAgent(num_actions=10)
+    reliability_list = run_simulation(env, agent, num_tasks, log_file)

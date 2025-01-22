@@ -30,7 +30,7 @@ class FogNode:
     def get_total_workload(self):
         return sum(t['length'] for t in self.primary_queue) + sum(t['length'] for t in self.backup_queue)
 
-    def calculate_reliability(self, broker):
+    def calculate_reliability(self, broker, log_file):
         total_reliability = 1
         for task in self.primary_queue:
             Rc_fi = math.exp(-self.failure_rate * task['length'] / self.frequency)
@@ -45,6 +45,10 @@ class FogNode:
                 task_reliability = 0  # Task fails if it misses the deadline
 
             total_reliability *= task_reliability
+
+            # Log intermediate values for debugging
+            log_file.write(f"Task ID: {task['id']}, Rc_fi: {Rc_fi}, TRB_fj: {TRB_fj}, Rl_fi: {Rl_fi}, R0_i: {R0_i}, Task Reliability: {task_reliability}, Total Reliability: {total_reliability}\n")
+
         return total_reliability
 
     def execute_tasks(self):
@@ -54,6 +58,7 @@ class FogNode:
         # Simulate the execution of tasks in the backup queue
         for task in self.backup_queue:
             self.release_task(task)
+
 
 class Broker:
     def __init__(self, processing_time, bandwidth, channel_gain, transmission_power, noise, link_failure_rate):
@@ -78,10 +83,10 @@ class Environment:
     def add_task(self, task):
         self.tasks.append(task)
 
-    def get_state(self):
+    def get_state(self, log_file):
         state = []
         for node in self.fog_nodes:
-            reliability = node.calculate_reliability(self.broker)
+            reliability = node.calculate_reliability(self.broker, log_file)
             workload_distribution = node.get_total_workload()
             state.append((reliability, workload_distribution))
         return state
@@ -113,10 +118,10 @@ class Environment:
         T_Qfj = primary_node.get_total_workload() / primary_node.frequency
         return T_ufj + T_efj + T_Qfj
 
-    def calculate_total_reliability(self):
+    def calculate_total_reliability(self, log_file):
         total_reliability = 1
         for node in self.fog_nodes:
-            node_reliability = node.calculate_reliability(self.broker)
+            node_reliability = node.calculate_reliability(self.broker, log_file)
             total_reliability *= node_reliability
         return total_reliability
 
