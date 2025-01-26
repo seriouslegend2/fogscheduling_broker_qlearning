@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abhisarga 2025 - Banner Guidelines Poster</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap');
+
+        :root {
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2a2a2a;
+            --text-light: #ffffff;
+            --text-gray: #a0a0a0;
+            --accent-color: #4a4a4a;
+            --highlight: #3a3a3a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        
+        .poster {
+            max-width: 1200px;
+            margin: auto;
+            background: var(--secondary-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .banner-section {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+        }
+        
+        .banner-section img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.8);
+        }
+        
+        .banner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, rgba(26,26,26,0) 0%, rgba(26,26,26,1) 90%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 3rem;
+        }
+        
+        .title {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        
+        .content {
+            padding: 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .guidelines-section {
+            background: var(--highlight);
+            padding: 2rem;
+            border-radius: 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .guidelines-section:hover {
+            transform: translateY(-5px);
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .guidelines-list {
+            list-style: none;
+        }
+        
+        .guidelines-list li {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-gray);
+        }
+        
+        .guidelines-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+        }
+        
+        .important-note {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            border-left: 4px solid #505050;
+            margin-top: 2rem;
+            grid-column: 1 / -1;
+        }
+        
+        .deadline-section {
+            text-align: center;
+            background: var(--highlight);
+            padding: 2rem;
+            border-radius: 15px;
+            grid-column: 1 / -1;
+        }
+        
+        .deadline-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+        }
+        
+        .deadline-date {
+            font-size: 1.5rem;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            background: var(--primary-bg);
+            color: var(--text-gray);
+        }
+        
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .content {
+                padding: 1.5rem;
+            }
+            
+            .banner-section {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <div class="banner-section">
+            <img src="https://photos.app.goo.gl/G4Kixu7KFgpXGZTg6" alt="Abhisarga 2025 Banner">
+            <div class="banner-overlay">
+                <h1 class="title">Abhisarga 2025</h1>
+                <p class="subtitle">Banner Submission Guidelines</p>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="guidelines-section">
+                <h2 class="section-title">Design Requirements</h2>
+                <ul class="guidelines-list">
+                    <li>Include official Institute Logo</li>
+                    <li>Display Club Logo and Name</li>
+                    <li>Highlight Event Name</li>
+                    <li>Theme: Mystery and Magic</li>
+                    <li>Dimensions: 7 feet × 4 feet</li>
+                </ul>
+            </div>
+            
+            <div class="guidelines-section">
+                <h2 class="section-title">Content Guidelines</h2>
+                <ul class="guidelines-list">
+                    <li>Event-specific content must be concise</li>
+                    <li>Reserve space for sponsor details</li>
+                    <li>Align with fest's theme</li>
+                    <li>Maintain visual hierarchy</li>
+                    <li>Ensure readability</li>
+                </ul>
+            </div>
+            
+            <div class="important-note">
+                <h2 class="section-title">Important Note</h2>
+                <ul class="guidelines-list">
+                    <li>Submit banners on time to avoid delays</li>
+                    <li>Design Team provides Canva Pro access</li>
+                    <li>Technical support available on request</li>
+                </ul>
+            </div>
+            
+            <div class="deadline-section">
+                <h2 class="deadline-title">Submission Deadline</h2>
+                <p class="deadline-date">January 31st, 2025</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Joint Secretary Technical</p>
+            <p>© 2025 Abhisarga. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,4 +1,6 @@
 import math
+import numpy as np
+import random
 
 class FogNode:
     def __init__(self, node_id, capacity, frequency, failure_rate):
@@ -30,9 +32,27 @@ class FogNode:
     def get_total_workload(self):
         return sum(t['length'] for t in self.primary_queue) + sum(t['length'] for t in self.backup_queue)
 
+    def schedule_tasks_by_deadline(self):
+        # Sort tasks by their deadlines in both primary and backup queues
+        self.primary_queue.sort(key=lambda task: task['deadline'])
+        self.backup_queue.sort(key=lambda task: task['deadline'])
+
+    def execute_tasks(self):
+        # Schedule tasks in both queues using EDF
+        self.schedule_tasks_by_deadline()
+
+        # Execute tasks in the primary queue
+        for task in self.primary_queue:
+            self.release_task(task)
+
+        # Execute tasks in the backup queue
+        for task in self.backup_queue:
+            self.release_task(task)
+
     def calculate_reliability(self, broker, log_file):
         total_reliability = 1
         for task in self.primary_queue:
+            print(f"Calculating reliability for node {self.node_id}")
             Rc_fi = math.exp(-self.failure_rate * task['length'] / self.frequency)
             TRB_fj = broker.bandwidth * math.log2(1 + broker.channel_gain * broker.transmission_power / broker.noise)
             Rl_fi = math.exp(-broker.link_failure_rate * task['size'] / TRB_fj)
@@ -51,14 +71,6 @@ class FogNode:
 
         return total_reliability
 
-    def execute_tasks(self):
-        # Simulate the execution of tasks in the primary queue
-        for task in self.primary_queue:
-            self.release_task(task)
-        # Simulate the execution of tasks in the backup queue
-        for task in self.backup_queue:
-            self.release_task(task)
-
 
 class Broker:
     def __init__(self, processing_time, bandwidth, channel_gain, transmission_power, noise, link_failure_rate):
@@ -74,8 +86,10 @@ class Broker:
         T_ufj = task_size / TRB_fj
         return self.processing_time + T_ufj
 
+
 class Environment:
     def __init__(self, num_fog_nodes, node_capacity, node_frequency, node_failure_rate, transmission_params):
+        # Initialize fog nodes with given parameters
         self.fog_nodes = [FogNode(i, node_capacity, node_frequency, node_failure_rate) for i in range(num_fog_nodes)]
         self.tasks = []
         self.broker = Broker(**transmission_params)
@@ -128,3 +142,10 @@ class Environment:
     def execute_all_tasks(self):
         for node in self.fog_nodes:
             node.execute_tasks()
+
+    def task_scheduler(self):
+        for node in self.fog_nodes:
+            if node.backup_queue:
+                node.schedule_tasks_by_deadline()  # EDF for backup queue
+            else:
+                node.schedule_tasks_by_deadline()  # EDF for primary queue
