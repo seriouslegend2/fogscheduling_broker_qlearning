@@ -57,6 +57,7 @@ def run_simulation(env, agent, num_tasks, log_file):
         task = env.tasks.pop(0)  # Get the next task to process
         # Calculate reliability and workload distribution for each fog node
         state = env.get_state(log_file)
+
         # Choose an action based on the current state
         action = agent.choose_action(state)
 
