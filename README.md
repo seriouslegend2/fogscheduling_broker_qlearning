@@ -1,4 +1,4 @@
-# ReLIEF: A Reinforcement-Learning-Based Real-Time Task Assignment Strategy in Fault-Tolerant Fog Computing
+# -Learning-Based Real-Time Task Assignment Strategy handling reliability and workload distribution 
 
 ## Overview
 ReLIEF is a reinforcement learning-based approach designed to improve the reliability of real-time task assignment in fog computing environments. It uses a primary-backup task assignment strategy with Q-learning to select optimal fog nodes dynamically, ensuring that tasks meet real-time constraints while enhancing system reliability and workload distribution.
