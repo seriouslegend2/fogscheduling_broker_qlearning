@@ -53,21 +53,8 @@ The Q-learning reward function considers:
 - Reduction in delay.
 - Increase in system reliability.
 
-## Evaluation
-### Performance Metrics
-- **Reliability Improvement**: Up to 72% increase in reliability.
-- **Task Drop Rate Reduction**: Reduced by up to 84%.
-- **Workload Balancing**: 83.3% improvement over existing methods.
-- **Delay Optimization**: Considers transmission, queuing, and execution delays.
 
-## Contributors
-- Roozbeh Siyadatzadeh
-- Fatemeh Mehrafrooz
-- Mohsen Ansari
-- Bardia Safaei
-- Muhammad Shafique
-- Jörg Henkel
-- Alireza Ejlali
+
 
 ## References
 - Siyadatzadeh, R., Mehrafrooz, F., Ansari, M., et al. "ReLIEF: A Reinforcement-Learning-Based Real-Time Task Assignment Strategy in Emerging Fault-Tolerant Fog Computing." IEEE Internet of Things Journal, 2023.
